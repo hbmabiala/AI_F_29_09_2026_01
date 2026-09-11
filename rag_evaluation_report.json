@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-09-08 05:08:27",
+  "course_id": 76,
+  "course_title": "COMPRENDRE LA PYRAMIDE DE MASLOW",
+  "base_id": "3e5fc339-5451-4640-bb5a-388bac252522",
+  "total_tests": 5,
+  "averages": {
+    "context_relevance": 95.0,
+    "groundedness": 100.0,
+    "answer_relevance": 100.0,
+    "global_rag_score": 98.3,
+    "retrieval_latency_ms": 494.9,
+    "total_latency_ms": 1972.2
+  },
+  "tests": [
+    {
+      "test_id": 1,
+      "question": "Quels sont les cinq niveaux de besoins selon la pyramide de Maslow ?",
+      "chunks_count": 2,
+      "retrieval_ms": 1147.6,
+      "generation_ms": 2189.6,
+      "total_latency_ms": 3337.2,
+      "answer": "Les cinq niveaux de besoins selon la pyramide de Maslow sont : physiologiques, de sécurité, d'amour/appartenance, d'estime de soi et de réalisation de soi.",
+      "context_relevance": 95,
+      "groundedness": 100,
+      "answer_relevance": 100,
+      "rag_score": 98.3,
+      "judge_comment": "Le contexte fournit de manière exhaustive et claire la liste des cinq niveaux, permettant une réponse parfaitement fidèle et directe à la question."
+    },
+    {
+      "test_id": 2,
+      "question": "Qu'est-ce qu'un besoin physiologique ?",
+      "chunks_count": 2,
+      "retrieval_ms": 268.1,
+      "generation_ms": 1412.1,
+      "total_latency_ms": 1680.2,
+      "answer": "Un besoin physiologique est un besoin fondamental lié au maintien de la vie, incluant la faim, la soif, la survie, la sexualité, le repos et la gestion de la douleur.",
+      "context_relevance": 85,
+      "groundedness": 100,
+      "answer_relevance": 100,
+      "rag_score": 95.0,
+      "judge_comment": "Le contexte fournit précisément la définition et les exemples nécessaires, malgré la présence d'informations périphériques sur la théorie de Maslow non essentielles à la question."
+    },
+    {
+      "test_id": 3,
+      "question": "Comment satisfaire le besoin d'estime dans le cadre professionnel ?",
+      "chunks_count": 2,
+      "retrieval_ms": 390.0,
+      "generation_ms": 1521.2,
+      "total_latency_ms": 1911.2,
+      "answer": "En garantissant l'autonomie du collaborateur et en valorisant ses compétences.",
+      "context_relevance": 95,
+      "groundedness": 100,
+      "answer_relevance": 100,
+      "rag_score": 98.3,
+      "judge_comment": "Le contexte est très pertinent en fournissant les actions managériales spécifiques au besoin d'estime (niveau 4), et la réponse est concise, directe et entièrement fondée sur ce contexte."
+    },
+    {
+      "test_id": 4,
+      "question": "Quel niveau de besoin concerne la recherche de securite de l'emploi ?",
+      "chunks_count": 2,
+      "retrieval_ms": 238.7,
+      "generation_ms": 1090.3,
+      "total_latency_ms": 1329.0,
+      "answer": "La recherche de sécurité de l'emploi concerne le deuxième niveau de la pyramide de Maslow : le besoin de protection et de sécurité.",
+      "context_relevance": 100,
+      "groundedness": 100,
+      "answer_relevance": 100,
+      "rag_score": 100.0,
+      "judge_comment": "Le contexte fourni est parfaitement pertinent et riche, la réponse est entièrement fondée sur les informations extraites et répond directement et précisément à la question posée."
+    },
+    {
+      "test_id": 5,
+      "question": "Quel est le besoin situe tout au sommet de la pyramide ?",
+      "chunks_count": 2,
+      "retrieval_ms": 430.2,
+      "generation_ms": 1172.9,
+      "total_latency_ms": 1603.2,
+      "answer": "Le besoin situé au sommet de la pyramide est le besoin de réalisation de soi, qui correspond à la dimension spirituelle et au dépassement de soi.",
+      "context_relevance": 100,
+      "groundedness": 100,
+      "answer_relevance": 100,
+      "rag_score": 100.0,
+      "judge_comment": "Le contexte contient précisément l'information demandée et la réponse est factuellement exacte, directe et totalement étayée par le texte source."
+    }
+  ]
+}
