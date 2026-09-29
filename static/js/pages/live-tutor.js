@@ -367,11 +367,15 @@ let recordingContext = null;
 let playbackContext = null;
 let nextPlayTime = 0;
 
+function getApiKey() {
+    return (window.config && window.config.GEMINI_API_KEY) ? window.config.GEMINI_API_KEY : '';
+}
+
 const micBtn = document.getElementById('mic-btn');
-const apiKey = window.config ? window.config.GEMINI_API_KEY : null;
 
 if (micBtn) {
     micBtn.addEventListener('click', async () => {
+        const apiKey = getApiKey();
         if (!apiKey || apiKey === 'votre_cle_api_gemini_ici') {
             alert("Veuillez configurer votre clé API dans le fichier config.js");
             return;
@@ -497,9 +501,22 @@ function getSlideTeachingPayload(slideNum) {
 
 async function connect() {
     const pageCtx = getCurrentPageContext();
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        alert("Clé API Gemini non définie.");
+        resetUI();
+        return;
+    }
+
     try {
         recordingContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
         playbackContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+        if (recordingContext.state === 'suspended') {
+            await recordingContext.resume();
+        }
+        if (playbackContext.state === 'suspended') {
+            await playbackContext.resume();
+        }
         nextPlayTime = playbackContext.currentTime;
         if (micBtn) micBtn.innerText = pageCtx.connectingText;
     } catch (e) {
@@ -678,7 +695,7 @@ Encourage-le et réponds à ses questions sur son parcours personnel.`;
         }
 
         let setupData = {
-            model: "models/gemini-3.1-flash-live-preview",
+            model: "models/gemini-2.0-flash-exp",
             systemInstruction: {
                 parts: [{ text: systemPrompt }]
             },
@@ -988,6 +1005,7 @@ async function startRecording() {
         });
     } catch (err) {
         console.error("Erreur micro:", err);
+        alert("Accès au microphone bloqué ou indisponible. Veuillez vérifier et autoriser votre microphone dans la barre d'adresse de votre navigateur.");
         disconnect();
         return;
     }
@@ -1205,6 +1223,9 @@ window.stopAudioPlayback = stopAudioPlayback;
 
 function playAudioChunk(base64Data) {
     if (!playbackContext) return;
+    if (playbackContext.state === 'suspended') {
+        playbackContext.resume();
+    }
     const binaryStr = atob(base64Data);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) { bytes[i] = binaryStr.charCodeAt(i); }
