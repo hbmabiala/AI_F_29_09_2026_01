@@ -660,9 +660,14 @@ def create_course():
         tutor_voice = voice_prof['id']
         edge_voice = voice_prof['edge_voice']
 
-        # 3. Génération complète : PPTX, PDF, Audio Narration Edge-TTS, Timestamps, ChromaDB RAG
-        import pythoncom
-        pythoncom.CoInitialize()
+        has_pycom = False
+        try:
+            import pythoncom
+            pythoncom.CoInitialize()
+            has_pycom = True
+        except (ImportError, Exception):
+            has_pycom = False
+
         try:
             gen_result = generate_course_from_file(
                 raw_filepath=raw_filepath,
@@ -675,8 +680,9 @@ def create_course():
                 tutor_voice=edge_voice
             )
         finally:
-            try: pythoncom.CoUninitialize()
-            except Exception: pass
+            if has_pycom:
+                try: pythoncom.CoUninitialize()
+                except Exception: pass
 
         if os.path.exists(raw_filepath):
             try: os.remove(raw_filepath)
