@@ -229,6 +229,9 @@ function startLiveTutorMode(id) {
         disconnect();
     }
     
+    pageNum = 1;
+    window.currentLiveSlide = 1;
+    
     // Charger le PDF en arrière-plan pour la miniature
     if (course.pdf_url) {
         const url = course.pdf_url;
@@ -239,20 +242,83 @@ function startLiveTutorMode(id) {
             if (!window.liveTotalSlides || window.liveTotalSlides <= 1) {
                 window.liveTotalSlides = doc.numPages;
             }
-            pageNum = 1;
-            window.currentLiveSlide = 1;
             renderPage(1);
         }).catch(err => {
-            console.error("Erreur chargement PDF", err);
+            console.warn("PDF non disponible sur cette instance, passage au mode diapo dynamique:", err);
+            renderPage(1);
         });
+    } else {
+        renderPage(1);
     }
     
     window.navigateTo('details');
 }
 window.startLiveTutorMode = startLiveTutorMode;
 
+function renderHtmlSlideFallback(num) {
+    const canvas = document.getElementById('pdf-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = 800;
+    const height = 450;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Fond professionnel SGCI
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, width, height);
+
+    const slides = (currentCourse && Array.isArray(currentCourse.slides_data)) ? currentCourse.slides_data : [];
+    const idx = Math.max(0, num - 1);
+    const s = slides[idx] || {};
+    const title = s.titre || (currentCourse ? currentCourse.title : `Module ${num}`);
+    const bullets = (s.puces && Array.isArray(s.puces)) ? s.puces : [];
+
+    // Bandeau d'en-tête SGCI
+    ctx.fillStyle = '#e11d48';
+    ctx.fillRect(0, 0, width, 6);
+
+    // Titre de la slide
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+    ctx.fillText(title, 35, 50);
+
+    // Ligne de séparation
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(35, 68);
+    ctx.lineTo(width - 35, 68);
+    ctx.stroke();
+
+    // Contenu / Puces
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '16px system-ui, -apple-system, sans-serif';
+    let y = 110;
+    if (bullets.length > 0) {
+        bullets.forEach((b) => {
+            if (y < height - 40) {
+                ctx.fillText(`•   ${b}`, 45, y);
+                y += 38;
+            }
+        });
+    } else {
+        ctx.fillText("Consultez le support de cours et suivez l'explication audio du tuteur.", 45, 110);
+    }
+
+    // Pied de page
+    const pageNumEl = document.getElementById('page-num');
+    if (pageNumEl) pageNumEl.textContent = num;
+    const countEl = document.getElementById('page-count');
+    const total = slides.length || 1;
+    if (countEl) countEl.textContent = total;
+}
+
 function renderPage(num) {
-    if (!pdfDoc) return;
+    if (!pdfDoc) {
+        renderHtmlSlideFallback(num);
+        return;
+    }
     pdfDoc.getPage(num).then(page => {
         const canvas = document.getElementById('pdf-canvas');
         if (!canvas) return;
@@ -263,6 +329,8 @@ function renderPage(num) {
         page.render({ canvasContext: ctx, viewport: viewport });
         const pageNumEl = document.getElementById('page-num');
         if (pageNumEl) pageNumEl.textContent = num;
+    }).catch(() => {
+        renderHtmlSlideFallback(num);
     });
 }
 
@@ -279,7 +347,8 @@ if (prevBtn) {
 const nextBtn = document.getElementById('next-slide');
 if (nextBtn) {
     nextBtn.addEventListener('click', () => {
-        if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+        const total = pdfDoc ? pdfDoc.numPages : (window.liveTotalSlides || (currentCourse && currentCourse.slides_data ? currentCourse.slides_data.length : 1));
+        if (pageNum >= total) return;
         pageNum++;
         window.currentLiveSlide = pageNum;
         renderPage(pageNum);
@@ -838,8 +907,8 @@ Encourage-le et réponds à ses questions sur son parcours personnel.`;
 
     ws.onclose = (event) => {
         console.warn("WebSocket fermé:", event.code, event.reason);
-        if (event.code !== 1000 && event.code !== 1005) {
-            alert("Déconnexion de l'IA (Code " + event.code + "). " + (event.reason || "C'est probablement un problème de quota de clé API ou de modèle non supporté."));
+        if (event.code !== 1000 && event.code !== 1005 && isConnected) {
+            console.warn("Déconnexion de l'IA (Code " + event.code + "). " + (event.reason || "Fermeture session."));
         }
         disconnect();
     };
