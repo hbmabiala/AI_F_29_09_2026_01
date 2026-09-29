@@ -499,14 +499,68 @@ function getSlideTeachingPayload(slideNum) {
     return { title, bullets, narration };
 }
 
+function toggleLiveTutorLogs(forceState) {
+    const logsEl = document.getElementById('live-tutor-logs');
+    if (!logsEl) return;
+    const isHidden = logsEl.style.display === 'none';
+    const show = (typeof forceState === 'boolean') ? forceState : isHidden;
+    logsEl.style.display = show ? 'block' : 'none';
+}
+window.toggleLiveTutorLogs = toggleLiveTutorLogs;
+
+function clearLiveTutorLogs() {
+    const content = document.getElementById('live-tutor-logs-content');
+    if (content) content.innerHTML = '<span style="color:#64748b;">[Journaux effacés]</span>';
+}
+window.clearLiveTutorLogs = clearLiveTutorLogs;
+
+function logLiveEvent(level, message) {
+    const content = document.getElementById('live-tutor-logs-content');
+    const timeStr = new Date().toLocaleTimeString();
+    
+    let color = '#38bdf8'; // INFO
+    if (level === 'SUCCESS') color = '#4ade80';
+    if (level === 'WARN') color = '#fbbf24';
+    if (level === 'ERROR') color = '#f43f5e';
+    
+    console.log(`[T-chIA Live ${level}] ${message}`);
+    
+    if (content) {
+        if (content.innerHTML.includes('Attente du lancement')) {
+            content.innerHTML = '';
+        }
+        const line = document.createElement('div');
+        line.style.color = color;
+        line.style.marginBottom = '3px';
+        line.innerHTML = `<span style="color:#64748b;">[${timeStr}]</span> [${level}] ${message}`;
+        content.appendChild(line);
+        
+        const parent = document.getElementById('live-tutor-logs');
+        if (parent) {
+            parent.scrollTop = parent.scrollHeight;
+        }
+    }
+
+    if (level === 'ERROR' || level === 'WARN') {
+        toggleLiveTutorLogs(true);
+    }
+}
+window.logLiveEvent = logLiveEvent;
+
 async function connect() {
     const pageCtx = getCurrentPageContext();
+    logLiveEvent('INFO', 'Démarrage de la tentative de connexion Live T-chIA...');
+    
     const apiKey = getApiKey();
     if (!apiKey) {
-        alert("Clé API Gemini non définie.");
+        logLiveEvent('ERROR', 'Clé API Gemini non définie dans window.config.GEMINI_API_KEY.');
+        alert("Clé API Gemini non définie dans le fichier config.js");
         resetUI();
         return;
     }
+    
+    const maskedKey = apiKey.length > 10 ? (apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4)) : '***';
+    logLiveEvent('INFO', `Clé API Gemini identifiée : ${maskedKey}`);
 
     try {
         recordingContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
@@ -519,16 +573,28 @@ async function connect() {
         }
         nextPlayTime = playbackContext.currentTime;
         if (micBtn) micBtn.innerText = pageCtx.connectingText;
+        logLiveEvent('INFO', 'Contextes audio initialisés et débloqués (Rec: 16kHz, Playback: 24kHz).');
     } catch (e) {
+        logLiveEvent('ERROR', `Échec d'initialisation des contextes audio Web: ${e.message}`);
         console.error(e);
         resetUI();
         return;
     }
 
+    const liveModel = "models/gemini-2.0-flash-exp";
     const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
-    ws = new WebSocket(url);
+    logLiveEvent('INFO', `Ouverture du WebSocket vers wss://generativelanguage.googleapis.com/... (Modèle: ${liveModel})`);
+    
+    try {
+        ws = new WebSocket(url);
+    } catch (wsErr) {
+        logLiveEvent('ERROR', `Erreur lors de la création du WebSocket: ${wsErr.message}`);
+        resetUI();
+        return;
+    }
 
     ws.onopen = () => {
+        logLiveEvent('SUCCESS', 'WebSocket ouvert avec succès. Préparation et envoi du paquet setup...');
         let systemPrompt = `Tu es l'assistant IA de l'application 'IA Formation'. Discute avec l'utilisateur, réponds à ses questions de manière naturelle et aide-le.`;
         let welcomeMsg = "Bonjour ! Accueille-moi brièvement sur l'application 'IA Formation' et demande-moi comment tu peux m'aider.";
 
@@ -793,6 +859,7 @@ Encourage-le et réponds à ses questions sur son parcours personnel.`;
         } catch (e) { return; }
 
         if (msg.setupComplete) {
+            logLiveEvent('SUCCESS', 'Configuration validée par Gemini (setupComplete OK). Session Live T-chIA active !');
             isConnected = true;
             if (micBtn) {
                 micBtn.className = 'btn-listening';
@@ -923,10 +990,12 @@ Encourage-le et réponds à ses questions sur son parcours personnel.`;
     };
 
     ws.onclose = (event) => {
+        logLiveEvent('WARN', `WebSocket fermé. Code = ${event.code}, Raison = "${event.reason || 'Aucune raison spécifiée'}" (wasClean=${event.wasClean}).`);
         console.warn("WebSocket fermé:", event.code, event.reason);
         disconnect();
     };
     ws.onerror = (err) => { 
+        logLiveEvent('ERROR', `Erreur WebSocket réseau/protocole interceptée.`);
         console.error("Erreur WebSocket:", err); 
         disconnect(); 
     };
@@ -1003,7 +1072,9 @@ async function startRecording() {
                 channelCount: 1
             }
         });
+        logLiveEvent('INFO', 'Microphone capturé avec succès (flux 16kHz actif).');
     } catch (err) {
+        logLiveEvent('ERROR', `Accès microphone refusé/bloqué : ${err.message}`);
         console.error("Erreur micro:", err);
         alert("Accès au microphone bloqué ou indisponible. Veuillez vérifier et autoriser votre microphone dans la barre d'adresse de votre navigateur.");
         disconnect();

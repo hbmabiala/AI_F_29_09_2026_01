@@ -962,6 +962,18 @@
                     </span>
                 </div>
 
+                <!-- Console de Diagnostic / Journaux de Connexion WebSocket -->
+                <button id="toggle-logs-btn" onclick="toggleLiveTutorLogs()" style="margin-top: 10px; background: transparent; border: none; color: #64748b; font-size: 11.5px; font-weight: 600; cursor: pointer; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+                    📋 Afficher / Masquer la console de connexion Live WebSocket
+                </button>
+                <div id="live-tutor-logs" style="margin-top: 8px; width: 92%; max-width: 680px; max-height: 160px; overflow-y: auto; background: #0f172a; color: #38bdf8; font-family: monospace; font-size: 11.5px; border-radius: 8px; padding: 10px 14px; display: none; text-align: left; line-height: 1.4; border: 1px solid #334155;">
+                    <div style="color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 6px; font-weight: bold; display: flex; justify-content: space-between;">
+                        <span>-- JOURNAUX DE CONNEXION T-chIA LIVE --</span>
+                        <span onclick="clearLiveTutorLogs()" style="cursor:pointer; color:#f43f5e;">[Effacer]</span>
+                    </div>
+                    <div id="live-tutor-logs-content">Attente du lancement de la connexion...</div>
+                </div>
+
             </div>
 
             <!-- À DROITE : LE DOCUMENT EN MODE MASQUÉ (VOLET MINIATURE PLUS GRAND) -->
