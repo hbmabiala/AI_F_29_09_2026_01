@@ -20,7 +20,10 @@ except (ImportError, Exception):
     HAS_COMTYPES = False
 from dotenv import load_dotenv
 import chromadb
-from pydub import AudioSegment
+try:
+    from pydub import AudioSegment
+except (ImportError, ModuleNotFoundError, Exception):
+    AudioSegment = None
 from fpdf import FPDF
 from datetime import datetime
 import unicodedata
