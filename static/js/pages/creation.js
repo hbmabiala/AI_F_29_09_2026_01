@@ -152,9 +152,20 @@ document.getElementById('course-form')?.addEventListener('submit', async functio
                 body: formData
             });
             
-            const result = await response.json();
+            const textResponse = await response.text();
+            let result = {};
+            try {
+                result = JSON.parse(textResponse);
+            } catch (jsonErr) {
+                console.error("Réponse serveur non JSON:", textResponse);
+                if (response.status === 504 || response.status === 502) {
+                    throw new Error("Le serveur prend plus de temps que prévu à générer la formation avec l'IA. Veuillez patienter un instant et rafraîchir la liste.");
+                }
+                throw new Error(`Erreur serveur (${response.status}) : Le serveur n'a pas renvoyé une réponse valide.`);
+            }
+
             if (!response.ok) {
-                throw new Error(result.error || "Erreur lors de la création");
+                throw new Error(result.error || `Erreur lors de la création de la formation (Code ${response.status})`);
             }
         } else {
             // Modification : si une nouvelle miniature est fournie ou formulaire standard

@@ -735,33 +735,43 @@ def generate_course_from_file(raw_filepath, base_filename, title, domain, output
         concurrent.futures.wait(future_map.keys())
     
     # Assembler les audios dans l'ordre séquentiel
-    final_full_audio = AudioSegment.empty()
+    audio_path = ""
+    timestamps_path = ""
     timestamps = []
-    current_time = 0.0
     
-    for task in tts_tasks:
-        if os.path.exists(task["path"]):
-            try:
-                audio_seg = AudioSegment.from_mp3(task["path"])
-                final_full_audio += audio_seg
-                duration = len(audio_seg) / 1000.0
-                timestamps.append({"page": task["page"], "start": current_time, "end": current_time + duration})
-                current_time += duration
-            except Exception as e:
-                print(f"Erreur lecture audio {task['path']}: {e}")
-            finally:
-                # Nettoyer le fichier temporaire
-                try:
-                    os.remove(task["path"])
-                except Exception:
-                    pass
-                
-    audio_path = os.path.join(output_dir, f"{base_filename}_narration.mp3")
-    final_full_audio.export(audio_path, format="mp3")
-    
-    timestamps_path = os.path.join(output_dir, f"{base_filename}_timestamps.json")
-    with open(timestamps_path, "w", encoding="utf-8") as f:
-        json.dump(timestamps, f)
+    if AudioSegment is not None:
+        try:
+            final_full_audio = AudioSegment.empty()
+            current_time = 0.0
+            
+            for task in tts_tasks:
+                if os.path.exists(task["path"]):
+                    try:
+                        audio_seg = AudioSegment.from_mp3(task["path"])
+                        final_full_audio += audio_seg
+                        duration = len(audio_seg) / 1000.0
+                        timestamps.append({"page": task["page"], "start": current_time, "end": current_time + duration})
+                        current_time += duration
+                    except Exception as e:
+                        print(f"Erreur lecture audio {task['path']}: {e}")
+                    finally:
+                        try:
+                            os.remove(task["path"])
+                        except Exception:
+                            pass
+                            
+            audio_path = os.path.join(output_dir, f"{base_filename}_narration.mp3")
+            final_full_audio.export(audio_path, format="mp3")
+            
+            timestamps_path = os.path.join(output_dir, f"{base_filename}_timestamps.json")
+            with open(timestamps_path, "w", encoding="utf-8") as f:
+                json.dump(timestamps, f)
+        except Exception as e:
+            print(f"Erreur assemblage audio : {e}")
+            audio_path = ""
+            timestamps_path = ""
+    else:
+        print("AudioSegment (pydub) non disponible. Génération poursuivie sans audio global.")
     
     # 6. Conversion en PDF avec comtypes (PowerPoint)
     print("Conversion PPTX -> PDF...")
