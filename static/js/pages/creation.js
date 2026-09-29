@@ -92,7 +92,9 @@ document.getElementById('course-form')?.addEventListener('submit', async functio
     const title = (document.getElementById('course-title').value || '').trim();
     const desc = (document.getElementById('course-desc').value || '').trim();
     const domain = (document.getElementById('course-domain').value || '').trim() || 'Général';
-    const duration = document.getElementById('course-duration').value || '1';
+    let durVal = parseInt(document.getElementById('course-duration')?.value || '1', 10);
+    if (isNaN(durVal) || durVal < 1) durVal = 1;
+    const duration = String(durVal);
     const level = document.getElementById('course-level').value;
     const visibility = document.getElementById('course-visibility')?.value || 'assigned';
     const target_directions = document.getElementById('course-target-directions')?.value.trim() || '';

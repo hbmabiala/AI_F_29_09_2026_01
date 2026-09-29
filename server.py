@@ -628,7 +628,13 @@ def create_course():
         title = request.form.get('title', '').strip()
         domain = request.form.get('domain', '').strip() or 'Général'
         desc = request.form.get('desc', '').strip()
-        duration = request.form.get('duration', '1') or '1'
+        
+        raw_dur = request.form.get('duration', '1') or '1'
+        try:
+            dur_num = max(1, int(float(raw_dur)))
+        except (ValueError, TypeError):
+            dur_num = 1
+        duration = str(dur_num)
         
         if not title:
             return jsonify({'error': 'Le titre de la formation est obligatoire (*)'}), 400
@@ -3601,9 +3607,18 @@ def legacy_config():
 def legacy_js(path):
     return send_from_directory(os.path.join(basedir, 'static', 'js'), path)
 
-@app.route('/<path:path>')
-def serve_static(path):
-    return send_from_directory(basedir, path)
+@app.errorhandler(500)
+def handle_500_error(e):
+    msg = str(e)
+    if hasattr(e, 'original_exception') and e.original_exception:
+        msg = str(e.original_exception)
+    return jsonify({'error': f"Erreur serveur (500) : {msg}"}), 500
+
+@app.errorhandler(404)
+def handle_404_error(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Endpoint API non trouvé (404)'}), 404
+    return send_from_directory(basedir, 'index.html') if os.path.exists(os.path.join(basedir, 'index.html')) else ('Page non trouvée', 404)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8092))
