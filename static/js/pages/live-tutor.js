@@ -368,23 +368,13 @@ let playbackContext = null;
 let nextPlayTime = 0;
 
 function getApiKey() {
-    const k = (window.config && window.config.GEMINI_API_KEY) ? String(window.config.GEMINI_API_KEY).trim() : '';
-    if (!k || k.toUpperCase().includes('VOTRE_CLE') || k.toUpperCase().includes('VOTRE_CL')) {
-        return '';
-    }
-    return k;
+    return (window.config && window.config.GEMINI_API_KEY) ? String(window.config.GEMINI_API_KEY).trim() : '';
 }
 
 const micBtn = document.getElementById('mic-btn');
 
 if (micBtn) {
     micBtn.addEventListener('click', async () => {
-        const apiKey = getApiKey();
-        if (!apiKey || apiKey === 'votre_cle_api_gemini_ici') {
-            alert("Veuillez configurer votre clé API dans le fichier config.js");
-            return;
-        }
-
         if (isConnected) {
             disconnect();
         } else {
@@ -556,15 +546,7 @@ async function connect() {
     logLiveEvent('INFO', 'Démarrage de la tentative de connexion Live T-chIA...');
     
     const apiKey = getApiKey();
-    if (!apiKey) {
-        logLiveEvent('ERROR', 'Clé API Gemini invalide ou non renseignée (Texte d\'exemple détecté : VOTRE_CLE_API_GEMINI_ICI).');
-        logLiveEvent('WARN', 'ACTION REQUISE : Ajoutez votre vraie clé API Gemini dans la variable d\'environnement GEMINI_API_KEY sur Render (Dashboard > Environment).');
-        alert("Clé API Gemini invalide ou absente (Texte d'exemple détecté).\n\nVeuillez renseigner votre vraie clé API dans le Dashboard Render (Section Environment Variable GEMINI_API_KEY).");
-        resetUI();
-        return;
-    }
-    
-    const maskedKey = apiKey.length > 10 ? (apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4)) : '***';
+    const maskedKey = apiKey.length > 10 ? (apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4)) : (apiKey || 'non définie');
     logLiveEvent('INFO', `Clé API Gemini identifiée : ${maskedKey}`);
 
     try {
