@@ -530,10 +530,11 @@ def generate_course_from_file(raw_filepath, base_filename, title, domain, output
     # Fonction Helper pour tester plusieurs modèles avec basculement automatique
     def generate_with_fallback(contents):
         models_to_try = [
-            "gemini-2.0-flash",
+            "gemini-flash-latest",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
             "gemini-2.5-flash",
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
         ]
         last_error = None
         for m in models_to_try:
@@ -862,7 +863,7 @@ def generate_quiz_for_course_content(title, domain, content_summary, num_questio
         }}
     ]
     """
-    for m in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]:
+    for m in ["gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash"]:
         try:
             resp = client.models.generate_content(model=m, contents=prompt)
             clean = resp.text.replace("```json", "").replace("```", "").strip()
@@ -974,7 +975,7 @@ def evaluate_and_diagnose_submission(title, domain, quiz_questions, user_answers
         Renvoie UNIQUEMENT le JSON pur, sans balises markdown.
         """
         resp = None
-        for m in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]:
+        for m in ["gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash"]:
             try:
                 resp = client.models.generate_content(model=m, contents=eval_prompt)
                 break

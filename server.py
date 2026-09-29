@@ -1495,7 +1495,7 @@ def submit_oral_evaluation(id):
                 client = genai.Client(api_key=api_key)
                 up_file = client.files.upload(file=audio_save_path)
                 transcribe_res = None
-                for m in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]:
+                for m in ["gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash"]:
                     try:
                         transcribe_res = client.models.generate_content(
                             model=m,
@@ -1543,7 +1543,7 @@ def submit_oral_evaluation(id):
             }}
             """
             resp = None
-            for m in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]:
+            for m in ["gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash"]:
                 try:
                     resp = client.models.generate_content(model=m, contents=eval_prompt)
                     break
@@ -1732,7 +1732,7 @@ def api_chat():
             try:
                 uploaded_audio = client.files.upload(file=temp_audio_path)
                 transcribe_resp = None
-                for m in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]:
+                for m in ["gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash"]:
                     try:
                         transcribe_resp = client.models.generate_content(
                             model=m,
@@ -1841,10 +1841,10 @@ QUESTION DE L'APPRENANT :
 
         # Modèles ultra-rapides prioritaires
         models_to_try = [
-            "gemini-2.0-flash",
+            "gemini-flash-latest",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
             "gemini-2.5-flash",
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash",
         ]
         response_text = None
         last_err = None
