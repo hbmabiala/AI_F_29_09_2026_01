@@ -483,10 +483,17 @@ def generate_course_from_file(raw_filepath, base_filename, title, domain, output
     if progress_callback: progress_callback("Initialisation...", 10)
     
     load_dotenv(override=True)
-    GEMINI_API_KEY = api_key or os.getenv("GEMINI_API_KEY")
+    env_key = os.getenv("GEMINI_API_KEY", "").strip()
+    passed_key = (api_key or "").strip()
+    if env_key and env_key not in ["votre_cle_api_ici", "VOTRE_CLE_API_GEMINI_ICI"]:
+        GEMINI_API_KEY = env_key
+    elif passed_key and passed_key not in ["votre_cle_api_ici", "VOTRE_CLE_API_GEMINI_ICI"]:
+        GEMINI_API_KEY = passed_key
+    else:
+        GEMINI_API_KEY = env_key or passed_key
     
-    if not GEMINI_API_KEY or GEMINI_API_KEY == "votre_cle_api_ici":
-        raise Exception("Clé API manquante. Veuillez renseigner votre clé API.")
+    if not GEMINI_API_KEY or GEMINI_API_KEY in ["votre_cle_api_ici", "VOTRE_CLE_API_GEMINI_ICI"]:
+        raise Exception("Clé API manquante ou invalide. Veuillez renseigner votre clé API.")
         
     client = genai.Client(api_key=GEMINI_API_KEY)
     

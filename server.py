@@ -605,8 +605,15 @@ def generate_pdf(slides_data, output_path):
 @app.route('/api/create_course', methods=['POST'])
 def create_course():
     try:
-        # 1. Clé API
-        api_key = request.form.get('api_key') or os.getenv("GEMINI_API_KEY")
+        env_key = os.getenv("GEMINI_API_KEY", "").strip()
+        form_key = (request.form.get('api_key') or "").strip()
+        if env_key and env_key not in ["votre_cle_api_ici", "VOTRE_CLE_API_GEMINI_ICI"]:
+            api_key = env_key
+        elif form_key and form_key not in ["votre_cle_api_ici", "VOTRE_CLE_API_GEMINI_ICI"]:
+            api_key = form_key
+        else:
+            api_key = env_key or form_key
+
         if not api_key:
             return jsonify({'error': 'Clé API manquante'}), 400
             
