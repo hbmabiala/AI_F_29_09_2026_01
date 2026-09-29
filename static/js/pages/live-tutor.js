@@ -907,8 +907,10 @@ Encourage-le et réponds à ses questions sur son parcours personnel.`;
 
     ws.onclose = (event) => {
         console.warn("WebSocket fermé:", event.code, event.reason);
-        if (event.code !== 1000 && event.code !== 1005 && isConnected) {
-            console.warn("Déconnexion de l'IA (Code " + event.code + "). " + (event.reason || "Fermeture session."));
+        if (event.code === 1007 || (event.code !== 1000 && event.code !== 1005)) {
+            console.warn("Modèle Bidi Live non supporté par cette clé API. Basculement fluide en narration audio T-chIA...");
+            playFallbackTutorAudio();
+            return;
         }
         disconnect();
     };
@@ -947,7 +949,53 @@ function scheduleGracefulDisconnect() {
     }, delayMs);
 }
 
+function playFallbackTutorAudio() {
+    if (!currentCourse) return;
+    let audioEl = document.getElementById('live-fallback-audio');
+    if (!audioEl) {
+        audioEl = document.createElement('audio');
+        audioEl.id = 'live-fallback-audio';
+        document.body.appendChild(audioEl);
+    }
+
+    if (currentCourse.audio_url) {
+        audioEl.src = currentCourse.audio_url;
+        audioEl.preservesPitch = true;
+        audioEl.playbackRate = currentLiveTutorSpeed || 1.0;
+
+        audioEl.onplay = () => {
+            isConnected = true;
+            setHologramState('speaking');
+            updateAssistantButtonUI();
+            const speechBox = document.getElementById('holo-speech-content');
+            if (speechBox) speechBox.innerText = `« Lecture audio de la formation par T-chIA... »`;
+        };
+
+        audioEl.onended = () => {
+            isConnected = false;
+            setHologramState('idle');
+            updateAssistantButtonUI();
+            const speechBox = document.getElementById('holo-speech-content');
+            if (speechBox) speechBox.innerText = `« Formation terminée. Vous pouvez poser des questions ci-dessous ou lancer l'évaluation. »`;
+        };
+
+        audioEl.play().catch(() => {
+            if (currentCourse && currentCourse.id) {
+                window.location.href = `/presentation?course_id=${currentCourse.id}`;
+            }
+        });
+    } else {
+        if (currentCourse && currentCourse.id) {
+            window.location.href = `/presentation?course_id=${currentCourse.id}`;
+        }
+    }
+}
+
 function disconnect() {
+    const fallbackAudio = document.getElementById('live-fallback-audio');
+    if (fallbackAudio) {
+        try { fallbackAudio.pause(); } catch(e){}
+    }
     if (ws) { 
         try { ws.close(); } catch(e){} 
         ws = null; 
