@@ -34,7 +34,8 @@ def run_all_tests():
     # CAS 1 : Pas d'identifiants ni mots de passe exposes dans l'UI
     # -------------------------------------------------------------
     try:
-        with open('index.html', 'r', encoding='utf-8') as f:
+        idx_p = 'templates/index.html' if os.path.exists('templates/index.html') else 'index.html'
+        with open(idx_p, 'r', encoding='utf-8') as f:
             html_content = f.read()
             
         assert 'admin123' not in html_content, "ERREUR: Le mot de passe 'admin123' est present dans index.html !"
@@ -49,7 +50,8 @@ def run_all_tests():
     # CAS 2 : Absence absolue des termes 'IA Tutor' dans l'UI
     # -------------------------------------------------------------
     try:
-        with open('index.html', 'r', encoding='utf-8') as f:
+        idx_p = 'templates/index.html' if os.path.exists('templates/index.html') else 'index.html'
+        with open(idx_p, 'r', encoding='utf-8') as f:
             html_content = f.read()
             
         clean_html = re.sub(r'<script[\s\S]*?</script>', '', html_content)
@@ -64,7 +66,8 @@ def run_all_tests():
     # CAS 3 : En-tete officiel SGCI & T-chIA
     # -------------------------------------------------------------
     try:
-        with open('index.html', 'r', encoding='utf-8') as f:
+        idx_p = 'templates/index.html' if os.path.exists('templates/index.html') else 'index.html'
+        with open(idx_p, 'r', encoding='utf-8') as f:
             html_content = f.read()
             
         assert 'logo.png' in html_content, "ERREUR: Le logo SGCI est absent de l'en-tete !"
@@ -225,10 +228,12 @@ def run_all_tests():
     # CAS 9 : Ergonomie lecteur de cours (Questions masquees par defaut)
     # -------------------------------------------------------------
     try:
-        with open('index.html', 'r', encoding='utf-8') as f:
+        idx_p = 'templates/index.html' if os.path.exists('templates/index.html') else 'index.html'
+        with open(idx_p, 'r', encoding='utf-8') as f:
             html = f.read()
             
-        with open('app.js', 'r', encoding='utf-8') as f:
+        js_path = 'static/js/pages/presentation.js' if os.path.exists('static/js/pages/presentation.js') else ('js/pages/presentation.js' if os.path.exists('js/pages/presentation.js') else 'app.js')
+        with open(js_path, 'r', encoding='utf-8') as f:
             js = f.read()
             
         assert 'Afficher les questions' in html or 'Afficher les questions' in js, "Le bouton doit proposer [Afficher les questions] !"

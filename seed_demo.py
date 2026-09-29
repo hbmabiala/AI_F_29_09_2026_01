@@ -1,7 +1,8 @@
 import sqlite3
 from datetime import datetime, timedelta
 
-conn = sqlite3.connect('database.db', timeout=30.0)
+db_p = os.path.join(os.path.dirname(__file__), 'data', 'database.db') if os.path.exists(os.path.join(os.path.dirname(__file__), 'data', 'database.db')) else 'database.db'
+conn = sqlite3.connect(db_p, timeout=30.0)
 conn.row_factory = sqlite3.Row
 
 # 1. Comptes de test documentés dans README

@@ -32,11 +32,11 @@ if not API_KEY:
 client = genai.Client(api_key=API_KEY)
 
 # Initialisation ChromaDB
-CHROMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db")
+CHROMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "chroma_db") if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "chroma_db")) else os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db")
 chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
 collection = chroma_client.get_or_create_collection(name="ai_formation_courses")
 
-DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.db")
+DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "database.db") if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "database.db")) else os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.db")
 
 # Questions de test de reference par cours
 BENCHMARK_SUITES = {
@@ -224,6 +224,12 @@ def run_evaluation(course_base_id: str = None, questions: List[str] = None):
             if c["base_id"] == course_base_id:
                 target_course = c
                 break
+        if not target_course:
+            target_course = {
+                "id": 0,
+                "title": f"Cours ({course_base_id[:8]}...)",
+                "base_id": course_base_id
+            }
     
     if not target_course and courses:
         for c in courses:
@@ -288,6 +294,7 @@ def run_evaluation(course_base_id: str = None, questions: List[str] = None):
             "test_id": idx,
             "question": q,
             "chunks_count": len(docs),
+            "chunks": docs,
             "retrieval_ms": round(ret_ms, 1),
             "generation_ms": round(gen_ms, 1),
             "total_latency_ms": round(total_ms, 1),
@@ -363,6 +370,72 @@ def run_evaluation(course_base_id: str = None, questions: List[str] = None):
         json.dump(report, f, indent=2, ensure_ascii=False)
 
     print(f"\nRapport complet exporte dans : {report_path}")
+    return report
+
+def get_latest_report():
+    """Charge le dernier rapport d'evaluation JSON s'il existe."""
+    report_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rag_evaluation_report.json")
+    if os.path.exists(report_path):
+        try:
+            with open(report_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[AVERTISSEMENT] Erreur lecture rapport JSON: {e}")
+    return None
+
+def get_evaluable_courses():
+    """Retourne la liste des cours avec leur nombre de chunks indexes dans ChromaDB."""
+    courses = get_courses_from_db()
+    enriched = []
+    seen_bids = set()
+    for c in courses:
+        bid = c.get("base_id") or ""
+        seen_bids.add(bid)
+        count_chunks = 0
+        if bid:
+            try:
+                ch = collection.get(where={"source": bid})
+                if ch and "ids" in ch:
+                    count_chunks = len(ch["ids"])
+            except Exception:
+                pass
+        has_bench = bid in BENCHMARK_SUITES
+        bench_count = len(BENCHMARK_SUITES[bid]) if has_bench else 3
+        enriched.append({
+            "id": c["id"],
+            "title": c["title"],
+            "base_id": bid,
+            "chunks_count": count_chunks,
+            "has_benchmark": has_bench,
+            "benchmark_questions_count": bench_count
+        })
+
+    # Ajouter les suites de référence indexées dans ChromaDB
+    suite_names = {
+        "3e5fc339-5451-4640-bb5a-388bac252522": "COMPRENDRE LA PYRAMIDE DE MASLOW",
+        "18283e6b-47f9-4646-b07c-aa3c17dcaa58": "STYLES DE MANAGEMENT ET LEADERSHIP"
+    }
+    for bench_bid, qlist in BENCHMARK_SUITES.items():
+        if bench_bid not in seen_bids:
+            count_chunks = 0
+            try:
+                ch = collection.get(where={"source": bench_bid})
+                if ch and "ids" in ch:
+                    count_chunks = len(ch["ids"])
+            except Exception:
+                pass
+            if count_chunks > 0:
+                enriched.append({
+                    "id": 0,
+                    "title": suite_names.get(bench_bid, f"Cours Benchmark ({bench_bid[:8]})"),
+                    "base_id": bench_bid,
+                    "chunks_count": count_chunks,
+                    "has_benchmark": True,
+                    "benchmark_questions_count": len(qlist)
+                })
+                seen_bids.add(bench_bid)
+
+    return enriched
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluer le RAG ChromaDB + Gemini")
@@ -374,3 +447,4 @@ if __name__ == "__main__":
         run_evaluation(course_base_id=args.course_id, questions=[args.query])
     else:
         run_evaluation(course_base_id=args.course_id)
+

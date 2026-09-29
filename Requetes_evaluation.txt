@@ -1,1 +1,0 @@
-python evaluate_rag.py --query "Quelle est la différence entre besoin d'appartenance et besoin d'estime ?"

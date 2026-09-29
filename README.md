@@ -43,6 +43,9 @@ La solution intègre :
 └────────────────────────────┘ └─────────────────────────────────────────┘
 ```
 
+> [!TIP]
+> **Documentation Technique Détaillée** : Retrouvez le dictionnaire complet des données (11 tables SQLite), les métadonnées ChromaDB, les 40+ endpoints REST et l'arborescence des 17 modules JavaScript dans le fichier dédié : [DOCUMENTATION_TECHNIQUE.md](file:///c:/Users/dicko/SGCI_2026_001/10_09_2026_001_bon/DOCUMENTATION_TECHNIQUE.md).
+
 ---
 
 ## 3. Principales Règles Métier & Conformité Bancaire

@@ -12,7 +12,12 @@ from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
-import comtypes.client
+try:
+    import comtypes.client
+    HAS_COMTYPES = True
+except (ImportError, Exception):
+    comtypes = None
+    HAS_COMTYPES = False
 from dotenv import load_dotenv
 import chromadb
 from pydub import AudioSegment
@@ -452,7 +457,7 @@ def build_executive_presentation(course_data, title, domain, output_pptx, logo_p
     return prs
 
 def get_chroma_collection():
-    CHROMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db")
+    CHROMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "chroma_db") if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "chroma_db")) else os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db")
     os.makedirs(CHROMA_PATH, exist_ok=True)
     chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
     try:
@@ -515,14 +520,10 @@ def generate_course_from_file(raw_filepath, base_filename, title, domain, output
     # Fonction Helper pour tester plusieurs modèles avec basculement automatique
     def generate_with_fallback(contents):
         models_to_try = [
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-preview-05-20",
             "gemini-2.0-flash",
-            "gemini-3.5-flash",
-            "gemini-3.5-flash-lite",
+            "gemini-2.5-flash",
             "gemini-2.0-flash-lite",
             "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
         ]
         last_error = None
         for m in models_to_try:
@@ -672,7 +673,7 @@ def generate_course_from_file(raw_filepath, base_filename, title, domain, output
     if progress_callback: progress_callback("Génération du diaporama corporate...", 70)
     
     slides_list = course_data.get("slides", [])
-    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "static", "img", "logo.png") if os.path.exists(os.path.join(os.path.dirname(__file__), "static", "img", "logo.png")) else os.path.join(os.path.dirname(__file__), "logo.png")
     if not os.path.exists(logo_path):
         logo_path = os.path.join(os.path.dirname(__file__), "logo.jpg")
     
@@ -757,15 +758,18 @@ def generate_course_from_file(raw_filepath, base_filename, title, domain, output
     pdf_path = os.path.join(output_dir, f"{base_filename}.pdf")
     pdf_converted = False
     try:
-        comtypes.CoInitialize()
-        powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
-        powerpoint.Visible = 1
-        presentation = powerpoint.Presentations.Open(os.path.abspath(pptx_path), WithWindow=False)
-        presentation.SaveAs(os.path.abspath(pdf_path), 32)
-        presentation.Close()
-        powerpoint.Quit()
-        comtypes.CoUninitialize()
-        pdf_converted = True
+        if HAS_COMTYPES and comtypes is not None:
+            comtypes.CoInitialize()
+            powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
+            powerpoint.Visible = 1
+            presentation = powerpoint.Presentations.Open(os.path.abspath(pptx_path), WithWindow=False)
+            presentation.SaveAs(os.path.abspath(pdf_path), 32)
+            presentation.Close()
+            powerpoint.Quit()
+            comtypes.CoUninitialize()
+            pdf_converted = True
+        else:
+            raise RuntimeError("comtypes n'est pas disponible sur cette plateforme (non Windows/Render)")
     except Exception as e:
         print(f"Erreur de conversion PowerPoint COM : {e}")
         try:
@@ -848,7 +852,7 @@ def generate_quiz_for_course_content(title, domain, content_summary, num_questio
         }}
     ]
     """
-    for m in ["gemini-2.5-flash", "gemini-2.5-flash-preview-05-20", "gemini-flash-latest"]:
+    for m in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]:
         try:
             resp = client.models.generate_content(model=m, contents=prompt)
             clean = resp.text.replace("```json", "").replace("```", "").strip()
@@ -959,12 +963,19 @@ def evaluate_and_diagnose_submission(title, domain, quiz_questions, user_answers
         }}
         Renvoie UNIQUEMENT le JSON pur, sans balises markdown.
         """
-        resp = client.models.generate_content(model="gemini-2.5-flash", contents=eval_prompt)
-        clean = resp.text.replace("```json", "").replace("```", "").strip()
-        match = re.search(r'\{[\s\S]*\}', clean)
-        if match:
-            parsed = json.loads(match.group())
-            diagnostic_ai.update(parsed)
+        resp = None
+        for m in ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]:
+            try:
+                resp = client.models.generate_content(model=m, contents=eval_prompt)
+                break
+            except Exception:
+                continue
+        if resp and resp.text:
+            clean = resp.text.replace("```json", "").replace("```", "").strip()
+            match = re.search(r'\{[\s\S]*\}', clean)
+            if match:
+                parsed = json.loads(match.group())
+                diagnostic_ai.update(parsed)
     except Exception as e:
         print(f"Erreur génération diagnostic IA: {e}")
         
