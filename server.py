@@ -3598,8 +3598,9 @@ def legacy_logo():
     return send_from_directory(os.path.join(basedir, 'static', 'img'), 'logo.png')
 
 @app.route('/config.js')
+@app.route('/static/js/config.js')
 def legacy_config():
-    api_key = os.getenv("GEMINI_API_KEY", "")
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
     content = f"// Configuration dynamique T-chIA\nwindow.config = {{ GEMINI_API_KEY: {json.dumps(api_key)} }};\n"
     return Response(content, mimetype='application/javascript')
 
