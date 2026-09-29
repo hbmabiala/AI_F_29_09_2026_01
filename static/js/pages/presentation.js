@@ -209,7 +209,7 @@ function startPresentationMode(id, startFromSlide = 1) {
     }
     closePresentationEndModal();
     
-    // 1. Charger le document PDF
+    // 1. Charger le document PDF ou basculer en diapositive dynamique
     if (course.pdf_url) {
         const url = course.pdf_url;
         pdfjsLib.getDocument(url).promise.then(doc => {
@@ -221,9 +221,19 @@ function startPresentationMode(id, startFromSlide = 1) {
                 renderPresentationPage(presentationPageNum);
             });
         }).catch(err => {
-            if (loadingEl) loadingEl.innerText = "Erreur de chargement du PDF de la présentation.";
-            console.error("Erreur PDF présentation:", err);
+            console.warn("PDF de présentation non disponible, passage au mode diapo dynamique:", err);
+            presentationPdfDoc = null;
+            presentationTotalPages = (course.slides_data && Array.isArray(course.slides_data) && course.slides_data.length > 0) ? course.slides_data.length : 1;
+            presentationPageNum = Math.min(startFromSlide, presentationTotalPages);
+            initPresResizeObserver();
+            renderPresentationPage(presentationPageNum);
         });
+    } else {
+        presentationPdfDoc = null;
+        presentationTotalPages = (course.slides_data && Array.isArray(course.slides_data) && course.slides_data.length > 0) ? course.slides_data.length : 1;
+        presentationPageNum = Math.min(startFromSlide, presentationTotalPages);
+        initPresResizeObserver();
+        renderPresentationPage(presentationPageNum);
     }
     
     // 2. Initialiser l'audio et les timestamps
@@ -300,13 +310,96 @@ function startPresentationMode(id, startFromSlide = 1) {
 
 let currentPresRenderTask = null;
 
+function renderPresentationHtmlSlideFallback(num) {
+    const canvas = document.getElementById('presentation-canvas');
+    const loadingEl = document.getElementById('presentation-loading');
+    if (!canvas) return;
+    if (loadingEl) loadingEl.style.display = 'none';
+    canvas.style.display = 'block';
+
+    const pdfBox = document.getElementById('presentation-pdf-box');
+    const isFs = !!document.fullscreenElement;
+    const boxW = isFs ? window.innerWidth : (pdfBox ? pdfBox.clientWidth : 900);
+    const boxH = isFs ? window.innerHeight : (pdfBox ? pdfBox.clientHeight : 550);
+
+    const width = Math.max(boxW, 800);
+    const height = Math.max(boxH, 450);
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.width = `${boxW}px`;
+    canvas.style.height = `${boxH}px`;
+
+    const ctx = canvas.getContext('2d');
+
+    // Fond professionnel SGCI
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, width, height);
+
+    const slides = (currentCourse && Array.isArray(currentCourse.slides_data)) ? currentCourse.slides_data : [];
+    const total = slides.length || 1;
+    presentationTotalPages = total;
+
+    const idx = Math.max(0, num - 1);
+    const s = slides[idx] || {};
+    const title = s.titre || (currentCourse ? currentCourse.title : `Module ${num}`);
+    const bullets = (s.puces && Array.isArray(s.puces)) ? s.puces : [];
+
+    // Bandeau d'en-tête SGCI
+    ctx.fillStyle = '#e11d48';
+    ctx.fillRect(0, 0, width, 8);
+
+    // Titre de la slide
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 24px system-ui, -apple-system, sans-serif';
+    ctx.fillText(title, 40, 55);
+
+    // Ligne de séparation
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(40, 75);
+    ctx.lineTo(width - 40, 75);
+    ctx.stroke();
+
+    // Puces / Contenu
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '18px system-ui, -apple-system, sans-serif';
+    let y = 125;
+    if (bullets.length > 0) {
+        bullets.forEach((b) => {
+            if (y < height - 50) {
+                ctx.fillText(`•   ${b}`, 50, y);
+                y += 42;
+            }
+        });
+    } else {
+        ctx.fillText("Consultez le support de cours et écoutez l'explication audio.", 50, 125);
+    }
+
+    const pageInfo = document.getElementById('presentation-page-info');
+    if (pageInfo) pageInfo.innerText = `${num} / ${total}`;
+
+    const fsPageInfo = document.getElementById('fs-page-info');
+    if (fsPageInfo) fsPageInfo.innerText = `${num} / ${total}`;
+
+    const progBar = document.getElementById('presentation-progress-bar');
+    if (progBar) {
+        const pct = (num / total) * 100;
+        progBar.style.width = pct + '%';
+    }
+}
+
 function renderPresentationPage(num) {
-    if (!presentationPdfDoc) return;
     presentationPageNum = num;
     try {
         sessionStorage.setItem('ia_formation_presentation_slide', num);
         localStorage.setItem('ia_formation_presentation_slide', num);
     } catch(e) {}
+
+    if (!presentationPdfDoc) {
+        renderPresentationHtmlSlideFallback(num);
+        return;
+    }
     presentationPdfDoc.getPage(num).then(page => {
         const canvas = document.getElementById('presentation-canvas');
         if (!canvas) return;
@@ -514,7 +607,7 @@ if (btnPresPrev) {
 const btnPresNext = document.getElementById('presentation-next');
 if (btnPresNext) {
     btnPresNext.onclick = () => {
-        if (presentationPdfDoc && presentationPageNum < presentationTotalPages) {
+        if (presentationPageNum < presentationTotalPages) {
             presentationPageNum++;
             renderPresentationPage(presentationPageNum);
             jumpToPresentationSlide(presentationPageNum);
