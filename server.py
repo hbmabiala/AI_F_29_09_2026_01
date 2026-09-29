@@ -614,8 +614,8 @@ def create_course():
         else:
             api_key = env_key or form_key
 
-        if not api_key:
-            return jsonify({'error': 'Clé API manquante'}), 400
+        if not api_key or api_key in ["votre_cle_api_ici", "VOTRE_CLE_API_GEMINI_ICI"]:
+            return jsonify({'error': 'Clé API Gemini manquante ou invalide. Veuillez renseigner votre clé API.'}), 400
             
         # 2. Sauvegarder le fichier brut uploadé
         if 'file' not in request.files:
@@ -3612,7 +3612,7 @@ def handle_500_error(e):
     msg = str(e)
     if hasattr(e, 'original_exception') and e.original_exception:
         msg = str(e.original_exception)
-    return jsonify({'error': f"Erreur serveur (500) : {msg}"}), 500
+    return jsonify({'error': msg}), 500
 
 @app.errorhandler(404)
 def handle_404_error(e):
