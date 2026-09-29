@@ -368,7 +368,11 @@ let playbackContext = null;
 let nextPlayTime = 0;
 
 function getApiKey() {
-    return (window.config && window.config.GEMINI_API_KEY) ? window.config.GEMINI_API_KEY : '';
+    const k = (window.config && window.config.GEMINI_API_KEY) ? String(window.config.GEMINI_API_KEY).trim() : '';
+    if (!k || k.toUpperCase().includes('VOTRE_CLE') || k.toUpperCase().includes('VOTRE_CL')) {
+        return '';
+    }
+    return k;
 }
 
 const micBtn = document.getElementById('mic-btn');
@@ -553,8 +557,9 @@ async function connect() {
     
     const apiKey = getApiKey();
     if (!apiKey) {
-        logLiveEvent('ERROR', 'Clé API Gemini non définie dans window.config.GEMINI_API_KEY.');
-        alert("Clé API Gemini non définie dans le fichier config.js");
+        logLiveEvent('ERROR', 'Clé API Gemini invalide ou non renseignée (Texte d\'exemple détecté : VOTRE_CLE_API_GEMINI_ICI).');
+        logLiveEvent('WARN', 'ACTION REQUISE : Ajoutez votre vraie clé API Gemini dans la variable d\'environnement GEMINI_API_KEY sur Render (Dashboard > Environment).');
+        alert("Clé API Gemini invalide ou absente (Texte d'exemple détecté).\n\nVeuillez renseigner votre vraie clé API dans le Dashboard Render (Section Environment Variable GEMINI_API_KEY).");
         resetUI();
         return;
     }
